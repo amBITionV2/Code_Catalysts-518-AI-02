@@ -1,0 +1,38 @@
+{
+  "feature_cols": [
+    "query_year",
+    "query_rank",
+    "mean_close",
+    "min_close",
+    "max_close",
+    "samples",
+    "recent_year",
+    "trend_slope",
+    "last_year_close"
+  ],
+  "train_metrics": {
+    "ndcg@5": 0.9646706434458583,
+    "ndcg@10": 0.9572096850578602,
+    "num_groups": 144618
+  },
+  "valid_metrics": {
+    "ndcg@5": 0.9468803361970386,
+    "ndcg@10": 0.9366984410356017,
+    "num_groups": 24174
+  },
+  "test_metrics": {
+    "ndcg@5": 0.8761292544412457,
+    "ndcg@10": 0.8613861455011411,
+    "num_groups": 53796
+  },
+  "train_queries": 144618,
+  "valid_queries": 24174,
+  "test_queries": 53796,
+  "candidate_limit": 300,
+  "max_per_year_cat": 4000,
+  "train_until": 2023,
+  "valid_year": 2024,
+  "test_year": 2025,
+  "items_path": "artifacts\\items.parquet",
+  "training_time_seconds": 3036.924742937088
+}
