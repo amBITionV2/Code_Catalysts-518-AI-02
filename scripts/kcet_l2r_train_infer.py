@@ -413,13 +413,82 @@ def evaluate_metrics(X: pd.DataFrame, group_sizes: List[int], model: lgb.Booster
 # Inference
 # -----------------------------
 
+def clean_branch_name(branch: str) -> str:
+    """Clean and standardize branch names."""
+    if not isinstance(branch, str) or not branch.strip():
+        return ""
+
+    # Convert to lowercase for case-insensitive matching
+    branch = branch.lower().strip()
+    
+    # Map of common branch name variations to standard names
+    branch_mapping = {
+        'comp': 'Computer Science',
+        'cse': 'Computer Science',
+        'cs': 'Computer Science',
+        'ise': 'Information Science',
+        'mech': 'Mechanical',
+        'me': 'Mechanical',
+        'ece': 'Electronics and Communication',
+        'eee': 'Electrical and Electronics',
+        'ec': 'Electronics and Communication',
+        'ee': 'Electrical and Electronics',
+        'civil': 'Civil',
+        'cve': 'Civil',
+        'ai': 'Artificial Intelligence',
+        'ml': 'Machine Learning',
+        'ds': 'Data Science',
+        'aiml': 'AI & ML',
+        'aids': 'AI & DS'
+    }
+    
+    # Check for exact matches first
+    for key, value in branch_mapping.items():
+        if branch == key.lower():
+            return value
+    
+    # Check for partial matches
+    for key, value in branch_mapping.items():
+        if key in branch:
+            return value
+    
+    # If no match found, clean up the input
+    cleaned = (
+        branch.title()
+        .replace('Engg', 'Engineering')
+        .replace('Eng', 'Engineering')
+        .replace('Tech', 'Technology')
+        .replace('  ', ' ')
+        .strip()
+    )
+    
+    # Remove any remaining "Engineering" duplicates
+    cleaned = cleaned.replace('Engineering Engineering', 'Engineering')
+    
+    return cleaned if cleaned else branch
+    return cleaned
+
 def recommend(items: pd.DataFrame,
               model: lgb.Booster,
               feature_cols: List[str],
               user_rank: int,
               category: str,
               location_substr: Optional[str] = None,
+              branch_substr: Optional[str] = None,
               topn: int = 15) -> pd.DataFrame:
+    """
+    Generate college recommendations based on rank, category, and optional filters.
+    
+    Args:
+        items: DataFrame containing college data
+        model: Trained ranking model
+        feature_cols: List of feature columns
+        user_rank: User's KCET rank
+        category: Category (GM, 1G, etc.)
+        location_substr: Comma-separated list of locations to filter by (e.g., "Bangalore,Mysore")
+        branch_substr: Comma-separated list of branches to filter by (e.g., "Computer Science,Mechanical")
+        topn: Number of top recommendations to return
+    """
     """
     Generate college recommendations based on rank and category.
     
@@ -433,16 +502,80 @@ def recommend(items: pd.DataFrame,
         topn: Number of top recommendations to return
         
     Returns:
-        DataFrame with recommendations and metrics
+        DataFrame with recommendations and metadata
     """
+    # Clean branch names first
+    items = items.copy()
+    items["Branch"] = items["Branch"].apply(clean_branch_name)
+    
     # Filter by category
     cands = items[items["Category"].str.casefold() == str(category).casefold()].copy()
     if len(cands) == 0:
         return pd.DataFrame(columns=["College", "Branch", "Match_Score", "Last_Year_Cutoff", "Data_Points", "Rank_Advantage_%"])
 
-    # Filter by location if specified
+    # Handle multiple locations if specified
     if location_substr:
-        cands = cands[robust_city_filter(cands["College"], location_substr)].copy()
+        locations = [loc.strip().lower() for loc in location_substr.split(',') if loc.strip()]
+        if locations:
+            location_mask = pd.Series(False, index=cands.index)
+            for loc in locations:
+                location_mask = location_mask | cands['College'].str.lower().str.contains(loc.lower(), na=False)
+            cands = cands[location_mask].copy()
+    
+    # Handle multiple branches if specified
+    if branch_substr:
+        # Convert branch names to lowercase and clean them
+        search_terms = [term.strip().lower() for term in branch_substr.split(',') if term.strip()]
+        
+        if search_terms:
+            # First, create a clean version of the branch names for matching
+            cands['Branch_Clean'] = cands['Branch'].str.lower()
+            
+            # Create a mask for branches that match any of the search terms
+            branch_mask = pd.Series(False, index=cands.index)
+            
+            for term in search_terms:
+                # Try direct match first (e.g., 'comp' in 'computer science')
+                direct_match = cands['Branch_Clean'].str.contains(term, na=False)
+                
+                # Try cleaned version of the term (e.g., 'cs' -> 'computer science')
+                cleaned_term = clean_branch_name(term).lower()
+                cleaned_match = cands['Branch_Clean'].str.contains(cleaned_term, na=False)
+                
+                # Also check for common abbreviations
+                abbr_matches = {
+                    'comp': 'computer',
+                    'mech': 'mechanical',
+                    'cse': 'computer',
+                    'cs': 'computer',
+                    'ece': 'electronics',
+                    'eee': 'electrical',
+                    'civil': 'civil',
+                    'ise': 'information',
+                    'ec': 'electronics',
+                    'ee': 'electrical'
+                }
+                
+                abbr_match = pd.Series(False, index=cands.index)
+                for abbr, full in abbr_matches.items():
+                    if term == abbr:
+                        abbr_match = abbr_match | cands['Branch_Clean'].str.contains(full, na=False)
+                
+                # Combine all matching conditions
+                branch_mask = branch_mask | direct_match | cleaned_match | abbr_match
+            
+            # Apply the mask to filter candidates
+            cands = cands[branch_mask].copy()
+            
+            # Clean up the temporary column
+            if 'Branch_Clean' in cands.columns:
+                cands = cands.drop(columns=['Branch_Clean'])
+                
+            if len(cands) == 0:
+                return pd.DataFrame(columns=["College", "Branch", "Match_Score", "Last_Year_Cutoff", "Data_Points", "Rank_Advantage_%"])
+                
+            # Debug: Print found branches
+            print("\nFound branches:", cands['Branch'].unique().tolist())
         if len(cands) == 0:
             return pd.DataFrame(columns=["College", "Branch", "Match_Score", "Last_Year_Cutoff", "Data_Points", "Rank_Advantage_%"])
 
@@ -450,9 +583,10 @@ def recommend(items: pd.DataFrame,
     cands["query_rank"] = float(user_rank)
     cands["query_year"] = items["recent_year"].max()
 
-    # Calculate some useful features
+    # Calculate features
     cands["rank_ratio"] = user_rank / cands["last_year_close"].clip(lower=1)
     cands["safety_margin"] = cands["last_year_close"] - user_rank
+    cands["rank_diff_pct"] = (cands["last_year_close"] - user_rank) / cands["last_year_close"] * 100
 
     # Ensure all required features are present
     for col in feature_cols:
@@ -462,69 +596,110 @@ def recommend(items: pd.DataFrame,
             cands[col] = 0.0
 
     # Make predictions
-    scores = model.predict(cands[feature_cols])
-    cands["score"] = scores
-
-    # Calculate rank difference percentage (positive means your rank is better than last year's cutoff)
-    cands["rank_diff_pct"] = (cands["last_year_close"] - user_rank) / cands["last_year_close"] * 100
+    X = cands[feature_cols]
+    cands["score"] = model.predict(X, num_iteration=model.best_iteration or 0)
     
-    # Filter out colleges where your rank is way below the cutoff (more than 50% worse)
+    # Filter out colleges where rank is too far below cutoff (more than 50% worse)
     cands = cands[cands["rank_ratio"] < 1.5].copy()
-    
     if len(cands) == 0:
         return pd.DataFrame(columns=["College", "Branch", "Match_Score", "Last_Year_Cutoff", "Data_Points", "Rank_Advantage_%"])
 
-    # Sort by score and other criteria
-    cands = cands.sort_values(
-        ["score", "rank_diff_pct", "samples"],
-        ascending=[False, False, False]
-    ).head(topn)
+    # Calculate admission probability based on rank difference
+    # If rank equals cutoff: 85%
+    # If rank is better than cutoff: 75% at cutoff, decreases as difference increases
+    # If rank is worse than cutoff: 85% at cutoff, increases up to 95% as difference increases
+    
+    # Calculate rank difference (positive means cutoff is higher than your rank = better chance)
+    rank_diff = cands["last_year_close"] - user_rank
+    
+    # Initialize probability column
+    cands["admission_prob"] = 0.0
+    
+    # Calculate rank difference (positive means your rank is better than cutoff)
+    rank_diff = cands["last_year_close"] - user_rank
+    
+    # Initialize probability column
+    cands["admission_prob"] = 0.0
+    
+    # Case 1: Your rank is better than cutoff (e.g., rank 50k vs cutoff 55k)
+    better_mask = rank_diff > 0
+    # Start at 85% and increase by 1% per 1000 rank difference
+    prob_better = 0.85 + (0.01 * (rank_diff[better_mask] / 1000))
+    cands.loc[better_mask, "admission_prob"] = prob_better.clip(0.85, 0.95)  # Min 85%, Max 95%
+    
+    # Case 2: Your rank equals cutoff (rank_diff = 0)
+    equal_mask = rank_diff == 0
+    cands.loc[equal_mask, "admission_prob"] = 0.85
+    
+    # Case 3: Your rank is worse than cutoff (e.g., rank 50k vs cutoff 49k)
+    worse_mask = rank_diff < 0
+    positive_diff = -rank_diff[worse_mask]  # Convert to positive for calculation
+    # Start at 75% and decrease by 1% per 1000 rank difference
+    prob_worse = 0.75 - (0.01 * (positive_diff / 1000))
+    cands.loc[worse_mask, "admission_prob"] = prob_worse.clip(0.05, 0.75)  # Cap at 75%, min 5%
+    
+    # Ensure all probabilities are within 1-99% range (sanity check)
+    cands["admission_prob"] = cands["admission_prob"].clip(0.01, 0.99)
+    
+    # Calculate confidence based on rank difference and data points
+    cands["confidence"] = 50 + (50 * (1 - np.exp(-0.0001 * (cands["last_year_close"] - user_rank))))
+    cands["confidence"] = cands["confidence"].clip(5, 95).round(1)
+    
+    # Filter to show colleges with cutoffs near the user's rank
+    lower_bound = user_rank * 0.8
+    upper_bound = user_rank * 1.2
+    cands = cands[
+        (cands["last_year_close"] >= lower_bound) &
+        (cands["last_year_close"] <= upper_bound)
+    ]
 
-    # Calculate additional metrics
-    cands["admission_prob"] = 1 / (1 + np.exp(-cands["score"]))  # Convert to probability
+    # Categorize recommendations
+    conditions = [
+        (cands["last_year_close"] > 1.2 * user_rank),  # Reach
+        (cands["last_year_close"] > user_rank),       # Ambitious
+        (cands["last_year_close"] > 0.8 * user_rank), # Match
+        (cands["last_year_close"] > 0.5 * user_rank), # Good
+        (True)                                        # Safe
+    ]
+    choices = ["Reach", "Ambitious", "Match", "Good", "Safe"]
+    cands["chance"] = np.select(conditions, choices, default="Safe")
+    
+    # Group by College and Branch, keeping the best entry for each combination
+    # First, create a composite key of College + Branch
+    cands["college_branch"] = cands["College"] + " | " + cands["Branch"]
+    
+    # Sort by a combination of score and admission probability
+    cands["sort_score"] = cands["score"] * cands["admission_prob"]
+    
+    # Keep only the best entry for each college-branch combination
+    cands = cands.sort_values("sort_score", ascending=False).drop_duplicates("college_branch")
+    
+    # Get the top N results
+    cands = cands.head(topn)
     
     # Format the output
     result = cands[[
-        "College", "Branch", "score", "last_year_close", "samples", "rank_diff_pct", "admission_prob"
+        "College", "Branch", "last_year_close", 
+        "admission_prob", "confidence", "chance", "samples"
     ]].rename(columns={
-        "score": "Match_Score",
         "last_year_close": "Last_Year_Cutoff",
-        "samples": "Data_Points",
-        "rank_diff_pct": "Rank_Advantage_%",
-        "admission_prob": "Admission_Probability"
+        "admission_prob": "Admission_Probability",
+        "confidence": "Confidence",
+        "chance": "Category",
+        "samples": "Data_Points"
     })
 
-    # Format the output for better readability
-    result["Match_Score"] = result["Match_Score"].round(4)
-    result["Rank_Advantage_%"] = result["Rank_Advantage_%"].round(2)
-    result["Admission_Probability"] = (result["Admission_Probability"] * 100).round(2)
-    result["Data_Points"] = result["Data_Points"].astype(int)
-    result["Last_Year_Cutoff"] = result["Last_Year_Cutoff"].astype(int)
+    # Format percentages
+    result["Admission_Probability"] = (result["Admission_Probability"] * 100).round(1).astype(str) + "%"
+    result["Confidence"] = result["Confidence"].astype(str) + "%"
     
-    # Add a safety indicator
-    result["Chance"] = pd.cut(
-        result["Rank_Advantage_%"],
-        bins=[-float('inf'), -20, 0, 20, float('inf')],
-        labels=["Reach", "Match", "Good", "Safe"]
-    )
+    # Ensure consistent ordering
+    result = result[[
+        "College", "Branch", "Last_Year_Cutoff", 
+        "Admission_Probability", "Confidence", "Category", "Data_Points"
+    ]]
     
-    # Calculate accuracy metrics
-    if not result.empty:
-        # Calculate accuracy based on rank advantage
-        result["Accuracy"] = np.where(
-            result["Rank_Advantage_%"] > 0,
-            np.minimum(95, 70 + (result["Rank_Advantage_%"] * 1.5)),
-            np.maximum(5, 70 + (result["Rank_Advantage_%"] * 1.5))
-        ).round(2)
-        
-        # Cap accuracy between 1% and 99%
-        result["Accuracy"] = result["Accuracy"].clip(1, 99)
-    else:
-        result["Accuracy"] = 0.0
-
-    return result[["College", "Branch", "Match_Score", "Last_Year_Cutoff", 
-                  "Data_Points", "Rank_Advantage_%", "Admission_Probability", 
-                  "Accuracy", "Chance"]].reset_index(drop=True)
+    return result.reset_index(drop=True)
 
 
 # -----------------------------
@@ -697,27 +872,28 @@ def cmd_train(args):
 
 
 def cmd_recommend(args):
-    out_dir = args.out_dir
-    items_parquet = os.path.join(out_dir, "items.parquet")
-    items_csv = os.path.join(out_dir, "items.csv")
-    model_path = os.path.join(out_dir, "model_l2r.txt")
-    meta_path  = os.path.join(out_dir, "feature_meta.json")
+    # Define artifact paths
+    items_parquet = "artifacts/items.parquet"
+    model_path = "artifacts/model_l2r.txt"
+    meta_path = "artifacts/feature_meta.json"
 
-    if not os.path.exists(model_path) or not os.path.exists(meta_path):
-        raise SystemExit("Artifacts not found. Run training first (see --out_dir).")
+    # Check if required files exist
+    if not os.path.exists(model_path) or not os.path.exists(meta_path) or not os.path.exists(items_parquet):
+        raise SystemExit("Artifacts not found. Please run training first using: python kcet_l2r_train_infer.py train --data <your_data_file>")
 
     # Load items
-    if os.path.exists(items_parquet):
+    try:
         items = pd.read_parquet(items_parquet)
-    elif os.path.exists(items_csv):
-        items = pd.read_csv(items_csv)
-    else:
-        raise SystemExit("items file missing. Re-run training.")
+    except Exception as e:
+        raise SystemExit(f"Error loading items: {str(e)}")
 
     # Load model + meta
-    model = lgb.Booster(model_file=model_path)
-    with open(meta_path, "r") as f:
-        feature_cols = json.load(f)["feature_cols"]
+    try:
+        model = lgb.Booster(model_file=model_path)
+        with open(meta_path, "r") as f:
+            feature_cols = json.load(f)["feature_cols"]
+    except Exception as e:
+        raise SystemExit(f"Error loading model or feature metadata: {str(e)}")
 
     recs = recommend(
         items=items,
@@ -726,6 +902,7 @@ def cmd_recommend(args):
         user_rank=int(args.rank),
         category=args.category,
         location_substr=args.location,
+        branch_substr=args.branch,
         topn=int(args.topn)
     )
     if len(recs) > 0:
@@ -741,29 +918,50 @@ def cmd_recommend(args):
         display_df['College'] = display_df['College'].str[:40] + '...'
         display_df['Branch'] = display_df['Branch'].str[:30] + '...'
         
-        # Format percentages
-        display_df['Admission_Probability'] = display_df['Admission_Probability'].apply(lambda x: f"{x:.1f}%")
-        display_df['Accuracy'] = display_df['Accuracy'].apply(lambda x: f"{x:.1f}%")
+        # Format percentages - handle both numeric and string percentages
+        def format_percent(x):
+            if isinstance(x, str) and '%' in x:
+                return x  # Already formatted as percentage
+            try:
+                # Try to convert to float if it's a string without %
+                x_float = float(x) if isinstance(x, str) else x
+                return f"{x_float:.1f}%"
+            except (ValueError, TypeError):
+                return str(x)  # Return as is if conversion fails
+                
+        if 'Admission_Probability' in display_df.columns:
+            display_df['Admission_Probability'] = display_df['Admission_Probability'].apply(format_percent)
+        if 'Confidence' in display_df.columns:
+            display_df['Confidence'] = display_df['Confidence'].apply(format_percent)
         
-        # Reorder and select columns
-        display_df = display_df[[
-            'College', 'Branch', 'Last_Year_Cutoff', 
-            'Admission_Probability', 'Accuracy', 'Chance'
-        ]]
+        # Reorder and select columns that exist in the DataFrame
+        available_columns = [col for col in display_df.columns.tolist() 
+                           if col not in ['Confidence', 'Data_Points']]
+        columns_to_show = [
+            'College_Code', 'College', 'Branch', 'Last_Year_Cutoff', 
+            'Admission_Probability', 'Category'
+        ]
+        # Only include columns that exist in the DataFrame
+        display_columns = [col for col in columns_to_show if col in available_columns]
+        display_df = display_df[display_columns]
         
         # Rename columns for better display
-        display_df = display_df.rename(columns={
-            'College': 'College (Top 40 chars)',
+        rename_map = {
+            'College_Code': 'College Code',
+            'College': 'College Name (Top 40 chars)',
             'Branch': 'Branch (Top 30 chars)',
             'Last_Year_Cutoff': 'Last Year Cutoff',
             'Admission_Probability': 'Admission %',
-            'Accuracy': 'Confidence',
-            'Chance': 'Category'
-        })
+            'Category': 'Category'
+        }
+        # Only rename columns that exist in the DataFrame
+        rename_map = {k: v for k, v in rename_map.items() if k in display_df.columns}
+        if rename_map:
+            display_df = display_df.rename(columns=rename_map)
         
         # Print the formatted table
         print("\n" + "="*120)
-        print(f"RECOMMENDATIONS FOR RANK {args.rank} - {args.category} (Location: {args.location or 'All'})")
+        print(f"RECOMMENDATIONS FOR RANK {args.rank} - {args.category} (Location: {args.location or 'All'}, Branch: {args.branch or 'All'})")
         print("="*120)
         print(display_df.to_string(index=False))
         print("\nNote: Colleges and branches are truncated for display. Use --topn to see more options.")
@@ -774,11 +972,20 @@ def cmd_recommend(args):
         print("-"*120)
         for i, (_, row) in enumerate(recs.head(3).iterrows(), 1):
             print(f"\n{i}. {row['College']}")
-            print(f"   Branch: {row['Branch']}")
-            print(f"   Last Year Cutoff: {row['Last_Year_Cutoff']:,}")
-            print(f"   Admission Probability: {row['Admission_Probability']:.1f}%")
-            print(f"   Confidence: {row['Accuracy']:.1f}%")
-            print(f"   Category: {row['Chance']}")
+            print(f"   College Code: {row.get('College_Code', 'N/A')}")
+            # Clean up branch name for display
+            branch_name = str(row['Branch']).replace('Engineeringineering', 'Engineering').replace('anical', '').strip()
+            print(f"   Branch: {branch_name}")
+            print(f"   Last Year Cutoff: {int(row['Last_Year_Cutoff']):,}")
+            
+            # Handle Admission_Probability which might be a string with % or a number
+            prob_col = 'Admission_Probability' if 'Admission_Probability' in row else 'Admission %'
+            if prob_col in row:
+                prob = row[prob_col]
+                if isinstance(prob, str):
+                    # Remove % if present and convert to float
+                    prob = float(prob.replace('%', '').strip()) / 100.0 if '%' in str(prob) else float(prob)
+                print(f"   Admission Probability: {prob*100:.1f}%")
     else:
         print("\nNo recommendations found for the given criteria. Try adjusting your rank or location.")
 
@@ -799,12 +1006,15 @@ def main():
     p_train.set_defaults(func=cmd_train)
 
     # Recommend command
-    p_recommend = sub.add_parser("recommend", help="Get college recommendations")
-    p_recommend.add_argument("--rank", type=int, required=True, help="Your KCET rank")
-    p_recommend.add_argument("--category", type=str, required=True, help="Your category (e.g., GM, 1G, etc.)")
-    p_recommend.add_argument("--location", type=str, default=None, help="Optional: Filter by location (e.g., 'Bangalore')")
-    p_recommend.add_argument("--topn", type=int, default=10, help="Number of recommendations to return")
-    p_recommend.add_argument("--out_dir", type=str, default="artifacts", help="Directory containing the trained model")
+    p_recommend = sub.add_parser('recommend', help='Get recommendations')
+    p_recommend.add_argument('--rank', type=int, required=True, help='Your KCET rank')
+    p_recommend.add_argument('--category', type=str, required=True, help='Your category (GM, 1G, 2A, 2B, 3A, 3B, SC, ST)')
+    p_recommend.add_argument('--location', type=str, 
+                           help='Filter by one or more locations (comma-separated, e.g., "Bangalore,Mysore,Hubli")')
+    p_recommend.add_argument('--branch', type=str, 
+                           help='Filter by one or more branches (comma-separated, e.g., "Computer Science,Mechanical,Electronics")'
+                           'Note: Use partial names (e.g., "Comp" for Computer Science, "Mech" for Mechanical)')
+    p_recommend.add_argument('--topn', type=int, default=10, help='Number of recommendations to show (default: 10)')
     p_recommend.set_defaults(func=cmd_recommend)
 
     args = p.parse_args()
