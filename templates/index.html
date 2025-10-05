@@ -6,6 +6,7 @@
     <title>KCET College Predictor</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/chatbot.css') }}">
 </head>
 <body>
     <div class="container">
@@ -84,5 +85,26 @@
     </div>
 
     <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+    <!-- Chatbot Interface -->
+    <div class="chatbot-icon">
+        <i class="fas fa-comments"></i>
+    </div>
+    
+    <div class="chat-container">
+        <div class="chat-header">
+            <h3>KCET Counselor</h3>
+        </div>
+        <div class="chat-messages">
+            <div class="message bot-message">
+                Hi! I'm your KCET counselor. Ask me anything about colleges, cutoff ranks, or admission criteria!
+            </div>
+        </div>
+        <div class="chat-input">
+            <input type="text" placeholder="Type your message...">
+            <button><i class="fas fa-paper-plane"></i></button>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/chatbot.js') }}"></script>
 </body>
 </html>

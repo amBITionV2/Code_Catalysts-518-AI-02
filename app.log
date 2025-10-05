@@ -1,0 +1,142 @@
+2025-10-05 09:43:52,030 - WARNING -  * Debugger is active!
+2025-10-05 09:43:52,045 - INFO -  * Debugger PIN: 922-857-522
+2025-10-05 09:44:02,325 - INFO -  * Detected change in 'C:\\Users\\varun srivatsa k r\\OneDrive\\Desktop\\kcet-predictor\\app.py', reloading
+2025-10-05 09:44:02,798 - WARNING -  * Debugger is active!
+2025-10-05 09:44:02,812 - INFO -  * Debugger PIN: 922-857-522
+2025-10-05 09:44:16,161 - INFO -  * Detected change in 'C:\\Users\\varun srivatsa k r\\OneDrive\\Desktop\\kcet-predictor\\app.py', reloading
+2025-10-05 09:44:16,633 - WARNING -  * Debugger is active!
+2025-10-05 09:44:16,648 - INFO -  * Debugger PIN: 922-857-522
+2025-10-05 09:44:38,067 - INFO - 127.0.0.1 - - [05/Oct/2025 09:44:38] "GET / HTTP/1.1" 200 -
+2025-10-05 09:44:38,087 - INFO - 127.0.0.1 - - [05/Oct/2025 09:44:38] "[33mGET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1[0m" 404 -
+2025-10-05 09:44:38,175 - INFO - 127.0.0.1 - - [05/Oct/2025 09:44:38] "GET /static/js/chatbot.js HTTP/1.1" 200 -
+2025-10-05 09:44:38,184 - INFO - 127.0.0.1 - - [05/Oct/2025 09:44:38] "GET /static/css/chatbot.css HTTP/1.1" 200 -
+2025-10-05 09:44:38,184 - INFO - 127.0.0.1 - - [05/Oct/2025 09:44:38] "[36mGET /static/js/script.js HTTP/1.1[0m" 304 -
+2025-10-05 09:44:38,184 - INFO - 127.0.0.1 - - [05/Oct/2025 09:44:38] "[36mGET /static/css/style.css HTTP/1.1[0m" 304 -
+2025-10-05 09:44:58,817 - INFO - Processing chat request: whats the best clg in bgl...
+2025-10-05 09:44:58,818 - INFO - Sending request to OpenRouter API...
+2025-10-05 09:44:58,861 - INFO - 127.0.0.1 - - [05/Oct/2025 09:44:58] "[35m[1mPOST /chat HTTP/1.1[0m" 500 -
+2025-10-05 09:45:51,940 - INFO -  * Detected change in 'C:\\Users\\varun srivatsa k r\\OneDrive\\Desktop\\kcet-predictor\\app.py', reloading
+2025-10-05 09:45:52,384 - WARNING -  * Debugger is active!
+2025-10-05 09:45:52,396 - INFO -  * Debugger PIN: 922-857-522
+2025-10-05 09:46:02,655 - INFO -  * Detected change in 'C:\\Users\\varun srivatsa k r\\OneDrive\\Desktop\\kcet-predictor\\app.py', reloading
+2025-10-05 09:46:03,106 - WARNING -  * Debugger is active!
+2025-10-05 09:46:03,120 - INFO -  * Debugger PIN: 922-857-522
+2025-10-05 09:46:15,434 - INFO -  * Detected change in 'C:\\Users\\varun srivatsa k r\\OneDrive\\Desktop\\kcet-predictor\\app.py', reloading
+2025-10-05 09:46:15,858 - WARNING -  * Debugger is active!
+2025-10-05 09:46:15,869 - INFO -  * Debugger PIN: 922-857-522
+2025-10-05 09:46:30,214 - INFO -  * Detected change in 'C:\\Users\\varun srivatsa k r\\OneDrive\\Desktop\\kcet-predictor\\app.py', reloading
+2025-10-05 09:46:30,671 - WARNING -  * Debugger is active!
+2025-10-05 09:46:30,683 - INFO -  * Debugger PIN: 922-857-522
+2025-10-05 09:46:57,690 - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5000
+2025-10-05 09:46:57,692 - INFO - [33mPress CTRL+C to quit[0m
+2025-10-05 09:46:57,694 - INFO -  * Restarting with stat
+2025-10-05 09:46:58,144 - WARNING -  * Debugger is active!
+2025-10-05 09:46:58,155 - INFO -  * Debugger PIN: 922-857-522
+2025-10-05 09:47:01,230 - INFO - 127.0.0.1 - - [05/Oct/2025 09:47:01] "GET / HTTP/1.1" 200 -
+2025-10-05 09:47:01,245 - INFO - 127.0.0.1 - - [05/Oct/2025 09:47:01] "[33mGET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1[0m" 404 -
+2025-10-05 09:47:01,316 - INFO - 127.0.0.1 - - [05/Oct/2025 09:47:01] "GET /static/css/chatbot.css HTTP/1.1" 200 -
+2025-10-05 09:47:01,316 - INFO - 127.0.0.1 - - [05/Oct/2025 09:47:01] "[36mGET /static/css/style.css HTTP/1.1[0m" 304 -
+2025-10-05 09:47:01,317 - INFO - 127.0.0.1 - - [05/Oct/2025 09:47:01] "[36mGET /static/js/script.js HTTP/1.1[0m" 304 -
+2025-10-05 09:47:01,317 - INFO - 127.0.0.1 - - [05/Oct/2025 09:47:01] "GET /static/js/chatbot.js HTTP/1.1" 200 -
+2025-10-05 09:47:36,388 - INFO - Processing chat request: whats the best clg in bgl?...
+2025-10-05 09:47:36,389 - INFO - Sending request to OpenRouter API...
+2025-10-05 09:47:36,389 - INFO - Sending request to OpenRouter API...
+2025-10-05 09:47:36,398 - ERROR - OpenRouter API request error: HTTPSConnectionPool(host='api.openrouter.ai', port=443): Max retries exceeded with url: /api/v1/chat/completions (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x000002D8B3210940>: Failed to establish a new connection: [Errno 11001] getaddrinfo failed'))
+2025-10-05 09:47:36,398 - INFO - 127.0.0.1 - - [05/Oct/2025 09:47:36] "[35m[1mPOST /chat HTTP/1.1[0m" 503 -
+2025-10-05 09:48:29,278 - INFO -  * Detected change in 'C:\\Users\\varun srivatsa k r\\OneDrive\\Desktop\\kcet-predictor\\app.py', reloading
+2025-10-05 09:48:29,304 - INFO -  * Restarting with stat
+2025-10-05 09:48:29,728 - WARNING -  * Debugger is active!
+2025-10-05 09:48:29,741 - INFO -  * Debugger PIN: 922-857-522
+2025-10-05 09:48:50,230 - INFO -  * Detected change in 'C:\\Users\\varun srivatsa k r\\OneDrive\\Desktop\\kcet-predictor\\app.py', reloading
+2025-10-05 09:48:50,256 - INFO -  * Restarting with stat
+2025-10-05 09:48:50,676 - WARNING -  * Debugger is active!
+2025-10-05 09:48:50,688 - INFO -  * Debugger PIN: 922-857-522
+2025-10-05 09:49:34,694 - INFO -  * Detected change in 'C:\\Users\\varun srivatsa k r\\OneDrive\\Desktop\\kcet-predictor\\app.py', reloading
+2025-10-05 09:49:34,725 - INFO -  * Restarting with stat
+2025-10-05 09:49:35,160 - WARNING -  * Debugger is active!
+2025-10-05 09:49:35,174 - INFO -  * Debugger PIN: 922-857-522
+2025-10-05 09:50:03,329 - ERROR - Health check failed: HTTPSConnectionPool(host='api.openrouter.ai', port=443): Max retries exceeded with url: /api/v1/models (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x000002BA67C41390>: Failed to establish a new connection: [Errno 11001] getaddrinfo failed'))
+2025-10-05 09:50:03,330 - INFO - 127.0.0.1 - - [05/Oct/2025 09:50:03] "[35m[1mGET /health HTTP/1.1[0m" 500 -
+2025-10-05 09:50:28,928 - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5000
+2025-10-05 09:50:28,929 - INFO - [33mPress CTRL+C to quit[0m
+2025-10-05 09:50:28,930 - INFO -  * Restarting with stat
+2025-10-05 09:50:29,331 - WARNING -  * Debugger is active!
+2025-10-05 09:50:29,345 - INFO -  * Debugger PIN: 922-857-522
+2025-10-05 09:50:36,507 - INFO - 127.0.0.1 - - [05/Oct/2025 09:50:36] "GET / HTTP/1.1" 200 -
+2025-10-05 09:50:36,523 - INFO - 127.0.0.1 - - [05/Oct/2025 09:50:36] "[33mGET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1[0m" 404 -
+2025-10-05 09:50:36,610 - INFO - 127.0.0.1 - - [05/Oct/2025 09:50:36] "[36mGET /static/css/chatbot.css HTTP/1.1[0m" 304 -
+2025-10-05 09:50:36,612 - INFO - 127.0.0.1 - - [05/Oct/2025 09:50:36] "[36mGET /static/css/style.css HTTP/1.1[0m" 304 -
+2025-10-05 09:50:36,614 - INFO - 127.0.0.1 - - [05/Oct/2025 09:50:36] "GET /static/js/chatbot.js HTTP/1.1" 200 -
+2025-10-05 09:50:36,614 - INFO - 127.0.0.1 - - [05/Oct/2025 09:50:36] "[36mGET /static/js/script.js HTTP/1.1[0m" 304 -
+2025-10-05 09:50:47,809 - INFO - Processing chat request: whats the best clg in bgl?...
+2025-10-05 09:50:47,810 - INFO - Sending request to OpenRouter API...
+2025-10-05 09:50:47,810 - INFO - Sending request to OpenRouter API...
+2025-10-05 09:50:47,821 - ERROR - OpenRouter API request error: HTTPSConnectionPool(host='api.openrouter.ai', port=443): Max retries exceeded with url: /api/v1/chat/completions (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x000001C45E6B0100>: Failed to establish a new connection: [Errno 11001] getaddrinfo failed'))
+2025-10-05 09:50:48,336 - INFO - 127.0.0.1 - - [05/Oct/2025 09:50:48] "[35m[1mPOST /chat HTTP/1.1[0m" 503 -
+2025-10-05 09:54:48,038 - INFO - 127.0.0.1 - - [05/Oct/2025 09:54:48] "GET / HTTP/1.1" 200 -
+2025-10-05 09:54:48,051 - INFO - 127.0.0.1 - - [05/Oct/2025 09:54:48] "[33mGET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1[0m" 404 -
+2025-10-05 09:54:48,057 - INFO - 127.0.0.1 - - [05/Oct/2025 09:54:48] "[36mGET /static/css/style.css HTTP/1.1[0m" 304 -
+2025-10-05 09:54:48,058 - INFO - 127.0.0.1 - - [05/Oct/2025 09:54:48] "[36mGET /static/css/chatbot.css HTTP/1.1[0m" 304 -
+2025-10-05 09:54:48,058 - INFO - 127.0.0.1 - - [05/Oct/2025 09:54:48] "[36mGET /static/js/script.js HTTP/1.1[0m" 304 -
+2025-10-05 09:54:48,059 - INFO - 127.0.0.1 - - [05/Oct/2025 09:54:48] "GET /static/js/chatbot.js HTTP/1.1" 200 -
+2025-10-05 09:55:03,035 - INFO - Processing chat request: whats the best clg in bgl?...
+2025-10-05 09:55:03,036 - INFO - Sending request to OpenRouter API...
+2025-10-05 09:55:03,037 - INFO - Sending request to OpenRouter API...
+2025-10-05 09:55:03,090 - ERROR - OpenRouter API request error: HTTPSConnectionPool(host='api.openrouter.ai', port=443): Max retries exceeded with url: /api/v1/chat/completions (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x000001C45E6B0D00>: Failed to establish a new connection: [Errno 11001] getaddrinfo failed'))
+2025-10-05 09:55:14,148 - ERROR - Alternative endpoint also failed: HTTPSConnectionPool(host='openrouter.ai', port=443): Max retries exceeded with url: /api/v1/chat/completions (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x000001C45E6B1120>: Failed to establish a new connection: [Errno 11002] getaddrinfo failed'))
+2025-10-05 09:55:14,149 - INFO - 127.0.0.1 - - [05/Oct/2025 09:55:14] "[35m[1mPOST /chat HTTP/1.1[0m" 503 -
+2025-10-05 09:55:56,701 - INFO -  * Detected change in 'C:\\Users\\varun srivatsa k r\\OneDrive\\Desktop\\kcet-predictor\\app.py', reloading
+2025-10-05 09:55:56,734 - INFO -  * Restarting with stat
+2025-10-05 09:55:57,221 - WARNING -  * Debugger is active!
+2025-10-05 09:55:57,234 - INFO -  * Debugger PIN: 922-857-522
+2025-10-05 09:56:10,572 - INFO -  * Detected change in 'C:\\Users\\varun srivatsa k r\\OneDrive\\Desktop\\kcet-predictor\\app.py', reloading
+2025-10-05 09:56:10,615 - INFO -  * Restarting with stat
+2025-10-05 09:56:11,026 - WARNING -  * Debugger is active!
+2025-10-05 09:56:11,039 - INFO -  * Debugger PIN: 922-857-522
+2025-10-05 09:56:57,097 - INFO -  * Detected change in 'C:\\Users\\varun srivatsa k r\\OneDrive\\Desktop\\kcet-predictor\\app.py', reloading
+2025-10-05 09:56:57,132 - INFO -  * Restarting with stat
+2025-10-05 09:56:57,548 - WARNING -  * Debugger is active!
+2025-10-05 09:56:57,560 - INFO -  * Debugger PIN: 922-857-522
+2025-10-05 09:57:11,926 - INFO -  * Detected change in 'C:\\Users\\varun srivatsa k r\\OneDrive\\Desktop\\kcet-predictor\\app.py', reloading
+2025-10-05 09:57:11,958 - INFO -  * Restarting with stat
+2025-10-05 09:57:12,401 - WARNING -  * Debugger is active!
+2025-10-05 09:57:12,414 - INFO -  * Debugger PIN: 922-857-522
+2025-10-05 09:57:42,921 - INFO - 127.0.0.1 - - [05/Oct/2025 09:57:42] "GET / HTTP/1.1" 200 -
+2025-10-05 09:57:42,936 - INFO - 127.0.0.1 - - [05/Oct/2025 09:57:42] "[33mGET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1[0m" 404 -
+2025-10-05 09:57:43,007 - INFO - 127.0.0.1 - - [05/Oct/2025 09:57:43] "[36mGET /static/css/chatbot.css HTTP/1.1[0m" 304 -
+2025-10-05 09:57:43,008 - INFO - 127.0.0.1 - - [05/Oct/2025 09:57:43] "[36mGET /static/css/style.css HTTP/1.1[0m" 304 -
+2025-10-05 09:57:43,008 - INFO - 127.0.0.1 - - [05/Oct/2025 09:57:43] "[36mGET /static/js/script.js HTTP/1.1[0m" 304 -
+2025-10-05 09:57:43,009 - INFO - 127.0.0.1 - - [05/Oct/2025 09:57:43] "[36mGET /static/js/chatbot.js HTTP/1.1[0m" 304 -
+2025-10-05 09:58:01,969 - INFO - Processing chat request: whats the best clg in bgl?...
+2025-10-05 09:58:01,969 - INFO - Sending request to OpenRouter API...
+2025-10-05 09:58:01,970 - INFO - Sending request to OpenRouter API...
+2025-10-05 09:58:01,990 - ERROR - OpenRouter API request error: HTTPSConnectionPool(host='api.openrouter.ai', port=443): Max retries exceeded with url: /api/v1/chat/completions (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x000002018DE283A0>: Failed to establish a new connection: [Errno 11001] getaddrinfo failed'))
+2025-10-05 09:58:02,493 - INFO - 127.0.0.1 - - [05/Oct/2025 09:58:02] "[35m[1mPOST /chat HTTP/1.1[0m" 503 -
+2025-10-05 10:00:42,985 - INFO -  * Detected change in 'C:\\Users\\varun srivatsa k r\\OneDrive\\Desktop\\kcet-predictor\\app.py', reloading
+2025-10-05 10:00:43,020 - INFO -  * Restarting with stat
+2025-10-05 10:00:43,467 - WARNING -  * Debugger is active!
+2025-10-05 10:00:43,480 - INFO -  * Debugger PIN: 922-857-522
+2025-10-05 10:01:21,372 - INFO -  * Detected change in 'C:\\Users\\varun srivatsa k r\\OneDrive\\Desktop\\kcet-predictor\\app.py', reloading
+2025-10-05 10:01:21,398 - INFO -  * Restarting with stat
+2025-10-05 10:04:45,898 - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5000
+2025-10-05 10:04:45,898 - INFO - [33mPress CTRL+C to quit[0m
+2025-10-05 10:04:45,901 - INFO -  * Restarting with stat
+2025-10-05 10:04:46,323 - WARNING -  * Debugger is active!
+2025-10-05 10:04:46,337 - INFO -  * Debugger PIN: 922-857-522
+2025-10-05 10:04:49,847 - INFO - 127.0.0.1 - - [05/Oct/2025 10:04:49] "GET / HTTP/1.1" 200 -
+2025-10-05 10:04:49,868 - INFO - 127.0.0.1 - - [05/Oct/2025 10:04:49] "[33mGET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1[0m" 404 -
+2025-10-05 10:04:49,948 - INFO - 127.0.0.1 - - [05/Oct/2025 10:04:49] "[36mGET /static/css/chatbot.css HTTP/1.1[0m" 304 -
+2025-10-05 10:04:49,950 - INFO - 127.0.0.1 - - [05/Oct/2025 10:04:49] "[36mGET /static/js/script.js HTTP/1.1[0m" 304 -
+2025-10-05 10:04:49,950 - INFO - 127.0.0.1 - - [05/Oct/2025 10:04:49] "[36mGET /static/css/style.css HTTP/1.1[0m" 304 -
+2025-10-05 10:04:49,951 - INFO - 127.0.0.1 - - [05/Oct/2025 10:04:49] "[36mGET /static/js/chatbot.js HTTP/1.1[0m" 304 -
+2025-10-05 10:04:58,868 - INFO - Processing chat request: whats the best clg in bgl?...
+2025-10-05 10:04:58,870 - INFO - Sending request to OpenRouter API...
+2025-10-05 10:04:58,870 - INFO - Sending request to OpenRouter API...
+2025-10-05 10:04:58,870 - INFO - Sending request to OpenRouter API...
+2025-10-05 10:04:58,921 - ERROR - OpenRouter API request error: HTTPSConnectionPool(host='api.openrouter.ai', port=443): Max retries exceeded with url: /api/v1/chat/completions (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x00000172EC6FE500>: Failed to establish a new connection: [Errno 11001] getaddrinfo failed'))
+2025-10-05 10:04:59,437 - INFO - 127.0.0.1 - - [05/Oct/2025 10:04:59] "[35m[1mPOST /chat HTTP/1.1[0m" 503 -
+2025-10-05 10:07:27,053 - INFO -  * Detected change in 'C:\\Users\\varun srivatsa k r\\OneDrive\\Desktop\\kcet-predictor\\app.py', reloading
+2025-10-05 10:07:27,088 - INFO -  * Restarting with stat

@@ -1,16 +1,12 @@
 from flask import Flask, render_template, request, jsonify
-import subprocess
-import json
-import sys
 import os
-import traceback
+import sys
+import json
 import requests
 from dotenv import load_dotenv
 
-# Set up base directory and add scripts to Python path
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-SCRIPTS_DIR = os.path.join(BASE_DIR, 'scripts')
-sys.path.append(SCRIPTS_DIR)
+# Add scripts directory to Python path
+sys.path.append(os.path.join(os.path.dirname(__file__), ''))
 
 # Load environment variables
 load_dotenv()
@@ -106,6 +102,74 @@ def chat():
         print(f"Unexpected error: {str(e)}")
         return jsonify({"error": "An unexpected error occurred. Please try again."}), 500
 
+@app.route('/predict', methods=['POST'])
+def predict():
+    try:
+        # Get JSON data from request
+        data = request.get_json()
+        if not data:
+            return jsonify({"success": False, "error": "No data provided"}), 400
+            
+        # Validate required fields
+        required_fields = ['rank', 'category', 'location', 'branch', 'topn']
+        missing_fields = [field for field in required_fields if field not in data]
+        if missing_fields:
+            return jsonify({
+                "success": False, 
+                "error": f"Missing required fields: {', '.join(missing_fields)}"
+            }), 400
+
+        # Validate data types
+        try:
+            rank = int(data['rank'])
+            topn = int(data['topn'])
+            category = str(data['category']).strip()
+            location = str(data['location']).strip()
+            branch = str(data['branch']).strip()
+        except (ValueError, TypeError) as e:
+            return jsonify({
+                "success": False,
+                "error": f"Invalid data format: {str(e)}"
+            }), 400
+
+        # Import prediction function
+        import scripts.kcet_l2r_train_infer as predictor
+
+        try:
+            # Get recommendations
+            recommendations = predictor.predict_colleges(
+                rank=rank,
+                category=category,
+                location=location.upper(),
+                branch=branch.upper(),
+                topn=topn
+            )
+            
+            if not recommendations:
+                return jsonify({
+                    "success": False,
+                    "error": "No colleges found matching your criteria"
+                }), 404
+
+            return jsonify({
+                "success": True,
+                "data": recommendations
+            })
+
+        except Exception as e:
+            print(f"Prediction error: {str(e)}")
+            return jsonify({
+                "success": False,
+                "error": f"Error during prediction: {str(e)}"
+            }), 500
+
+    except Exception as e:
+        print(f"Request processing error: {str(e)}")
+        return jsonify({
+            "success": False,
+            "error": f"Could not process request: {str(e)}"
+        }), 400
+
 def handle_local_response(message):
     """Handle responses locally when API is not available"""
     message = message.lower()
@@ -133,106 +197,6 @@ def handle_local_response(message):
                    "Here are some topics I can help with: \n" \
                    "- College cutoffs \n- Admission procedures \n- Document requirements \n- Branch information"
     })
-
-@app.route('/predict', methods=['POST'])
-def predict():
-    try:
-        # Log the raw request
-        print("Received predict request")
-        if not request.is_json:
-            print("Request is not JSON")
-            return jsonify({"error": "Content-Type must be application/json"}), 400
-
-        data = request.get_json()
-        print(f"Request data: {data}")
-        
-        if not data:
-            print("No data in request")
-            return jsonify({"error": "No data provided"}), 400
-
-        # Validate required fields
-        required_fields = ['rank', 'category', 'location', 'branch', 'topn']
-        missing_fields = [field for field in required_fields if field not in data]
-        if missing_fields:
-            print(f"Missing fields: {missing_fields}")
-            return jsonify({
-                "success": False, 
-                "error": f"Missing required fields: {', '.join(missing_fields)}"
-            }), 400
-
-        # Prepare the command
-        cmd = [
-            sys.executable,  # Use the same Python interpreter
-            "scripts/kcet_l2r_train_infer.py",
-            "recommend",
-            "--rank", str(data['rank']),
-            "--category", data['category'],
-            "--location", data['location'].upper(),
-            "--branch", data['branch'].upper().replace(" ", "_"),
-            "--topn", str(data['topn'])
-        ]
-        
-        print("\nExecuting command:", ' '.join(cmd), file=sys.stderr)
-        
-        # Run the command with a timeout
-        try:
-            result = subprocess.run(
-                cmd, 
-                capture_output=True, 
-                text=True,
-                timeout=30  # 30 seconds timeout
-            )
-            
-            print("\nCommand output:\n", result.stdout, file=sys.stderr)
-            print("\nCommand error (if any):\n", result.stderr, file=sys.stderr)
-            
-            if result.returncode == 0:
-                try:
-                    response_data = json.loads(result.stdout)
-                    print(f"\nRaw response data: {response_data}", file=sys.stderr)
-            
-                    # Handle different response structures
-                    if isinstance(response_data, dict):
-                        # If it's a dict with 'data' key
-                        if 'data' in response_data and isinstance(response_data['data'], list):
-                            recommendations = response_data['data']
-                        # If it's a dict with direct array values
-                        elif any(isinstance(v, list) for v in response_data.values()):
-                            for v in response_data.values():
-                                if isinstance(v, list):
-                                    recommendations = v
-                                    break
-                            else:
-                                recommendations = []
-                        else:
-                            recommendations = [response_data]  # Single result as dict
-                    elif isinstance(response_data, list):
-                        recommendations = response_data
-                    else:
-                        recommendations = []
-                    
-                    print(f"\nSuccessfully got {len(recommendations)} recommendations", file=sys.stderr)
-                    return jsonify({
-                        "success": True,
-                        "data": recommendations
-                    })
-                except Exception as e:
-                    import traceback
-                    traceback.print_exc()
-                    return jsonify({"error": f"Failed to parse prediction output: {str(e)}"}), 500
-            else:
-                error_msg = result.stderr or result.stdout or "Unknown error"
-                return jsonify({"error": f"Prediction script failed: {error_msg}"}), 500
-                
-        except Exception as e:
-            import traceback
-            traceback.print_exc()
-            return jsonify({"error": f"Prediction failed: {str(e)}"}), 500
-
-    except Exception as e:
-        import traceback
-        traceback.print_exc()
-        return jsonify({"error": f"Could not process request: {str(e)}"}), 400
 
 if __name__ == '__main__':
     # Enable debug mode for better error messages

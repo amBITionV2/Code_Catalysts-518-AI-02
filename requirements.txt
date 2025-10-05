@@ -1,2 +1,9 @@
 flask==2.3.3
 waitress==2.1.2
+python-dotenv==0.19.0
+requests==2.26.0
+pandas>=1.5.0
+numpy>=1.22.0
+scikit-learn>=1.0.0
+lightgbm>=3.3.0
+pyarrow>=10.0.0
