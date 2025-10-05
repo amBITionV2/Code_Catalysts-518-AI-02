@@ -34,5 +34,5 @@
   "valid_year": 2024,
   "test_year": 2025,
   "items_path": "artifacts\\items.parquet",
-  "training_time_seconds": 3036.924742937088
+  "training_time_seconds": 3221.428061723709
 }

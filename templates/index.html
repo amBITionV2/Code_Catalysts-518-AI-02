@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KCET College Predictor</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1><i class="fas fa-graduation-cap"></i> KCET College Predictor</h1>
+            <p>Find your dream college based on your KCET rank and preferences</p>
+        </header>
+
+        <div class="form-container">
+            <div class="input-group">
+                <label for="rank">KCET Rank</label>
+                <input type="number" id="rank" placeholder="Enter your KCET rank" min="1">
+            </div>
+
+            <div class="input-group">
+                <label for="category">Category</label>
+                <select id="category">
+                    <option value="2AG">2AG</option>
+                    <option value="3A">3A</option>
+                    <option value="3B">3B</option>
+                    <option value="GM">GM</option>
+                    <option value="SC">SC</option>
+                    <option value="ST">ST</option>
+                    <option value="CAT-1">CAT-1</option>
+                </select>
+            </div>
+
+            <div class="input-group">
+                <label for="location">Preferred Location</label>
+                <select id="location">
+                    <option value="BANGALORE">Bangalore</option>
+                    <option value="MYSURU">Mysuru</option>
+                    <option value="HUBLI">Hubli</option>
+                    <option value="MANGALURU">Mangaluru</option>
+                    <option value="ALL">All Locations</option>
+                </select>
+            </div>
+
+            <div class="input-group">
+                <label for="branch">Preferred Branch</label>
+                <select id="branch">
+                    <option value="COMPUTER SCIENCE">Computer Science</option>
+                    <option value="INFORMATION SCIENCE">Information Science</option>
+                    <option value="ELECTRONICS">Electronics</option>
+                    <option value="MECHANICAL">Mechanical</option>
+                    <option value="CIVIL">Civil</option>
+                    <option value="ELECTRICAL">Electrical</option>
+                </select>
+            </div>
+
+            <div class="input-group">
+                <label for="topn">Number of Recommendations</label>
+                <input type="range" id="topn" min="5" max="20" value="10">
+                <span id="topn-value">10</span>
+            </div>
+
+            <button id="predict-btn" class="btn">
+                <i class="fas fa-search"></i> Find Colleges
+            </button>
+        </div>
+
+        <div id="loading" class="loading hidden">
+            <div class="spinner"></div>
+            <p>Finding the best colleges for you...</p>
+        </div>
+
+        <div id="results" class="results hidden">
+            <h2>Your College Recommendations</h2>
+            <div id="results-container"></div>
+        </div>
+
+        <div id="error" class="error hidden">
+            <i class="fas fa-exclamation-circle"></i>
+            <p id="error-message"></p>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+</body>
+</html>

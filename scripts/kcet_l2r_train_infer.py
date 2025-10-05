@@ -19,6 +19,8 @@ Artifacts:
         cutoff_stats.json    # quick stats
 """
 
+import sys
+
 import argparse
 import json
 import os
@@ -849,223 +851,356 @@ def cmd_train(args):
     print(f"{'Metric':<15} | {'Training':<15} | {'Validation':<15} | {'Test':<15}")
     print("-" * 60)
     
+    # Return success message with training metrics
+    return {
+        "success": True,
+        "message": "Training completed successfully",
+        "training_time_seconds": total_time,
+        "model_path": model_path,
+        "items_path": items_path,
+        "metrics": {
+            "train_ndcg": float(metrics_train['ndcg@10']),
+            "valid_ndcg": float(metrics_valid['ndcg@10']),
+            "train_ndcg5": float(metrics_train['ndcg@5']),
+            "valid_ndcg5": float(metrics_valid['ndcg@5'])
+        },
+        "data_stats": stats,
+        "output": {
+            "total_time_minutes": total_time/60,
+            "artifacts_dir": out_dir,
+            "model_performance": {
+                "training_ndcg": float(metrics_train['ndcg@10']),
+                "validation_ndcg": float(metrics_valid['ndcg@10'])
+            }
+        }
+    }
+    
     # NDCG metrics
-    print(f"{'NDCG@5':<15} | {metrics_tr.get('ndcg@5', 0.0):>15.4f} | {metrics_va.get('ndcg@5', 0.0):>15.4f} | {metrics_te.get('ndcg@5', 0.0):>15.4f}")
-    print(f"{'NDCG@10':<15} | {metrics_tr.get('ndcg@10', 0.0):>15.4f} | {metrics_va.get('ndcg@10', 0.0):>15.4f} | {metrics_te.get('ndcg@10', 0.0):>15.4f}")
+    print(f"{'NDCG@5':<15} | {metrics_train.get('ndcg@5', 0.0):>15.4f} | {metrics_valid.get('ndcg@5', 0.0):>15.4f} | {'N/A':>15}")
+    print(f"{'NDCG@10':<15} | {metrics_train.get('ndcg@10', 0.0):>15.4f} | {metrics_valid.get('ndcg@10', 0.0):>15.4f} | {'N/A':>15}")
     
     # Number of groups
-    print(f"{'Num Groups':<15} | {metrics_tr.get('num_groups', 0):>15,} | {metrics_va.get('num_groups', 0):>15,} | {metrics_te.get('num_groups', 0):>15,}")
+    print(f"{'Num Groups':<15} | {metrics_train.get('num_groups', 0):>15,} | {metrics_valid.get('num_groups', 0):>15,} | {'N/A':>15}")
     
     # Additional metrics if available
-    if 'accuracy' in metrics_tr:
-        print(f"{'Accuracy':<15} | {metrics_tr.get('accuracy', 0.0):>15.4f} | {metrics_va.get('accuracy', 0.0):>15.4f} | {metrics_te.get('accuracy', 0.0):>15.4f}")
+    if 'accuracy' in metrics_train:
+        print(f"{'Accuracy':<15} | {metrics_train.get('accuracy', 0.0):>15.4f} | {metrics_valid.get('accuracy', 0.0):>15.4f} | {'N/A':>15}")
     
     # Print model info
     print("\nModel Info:")
     print(f"- Features: {len(feature_cols)}")
-    print(f"- Training queries: {len(grp_tr)}")
-    print(f"- Validation queries: {len(grp_va)}")
-    print(f"- Test queries: {len(grp_te)}")
+    print(f"- Training queries: {len(group_sizes_train) if 'group_sizes_train' in locals() else 'N/A'}")
+    print(f"- Validation queries: {len(group_sizes_valid) if 'group_sizes_valid' in locals() else 'N/A'}")
     
     print("\nTo use this model for recommendations, run:")
     print(f"  python {os.path.basename(__file__)} recommend --rank RANK --category CATEGORY [--location LOCATION]")
 
 
 def cmd_recommend(args):
+    import re  # Add regex for string cleaning
     # Define artifact paths
     items_parquet = "artifacts/items.parquet"
     model_path = "artifacts/model_l2r.txt"
     meta_path = "artifacts/feature_meta.json"
 
-    # Check if required files exist
-    if not os.path.exists(model_path) or not os.path.exists(meta_path) or not os.path.exists(items_parquet):
-        raise SystemExit("Artifacts not found. Please run training first using: python kcet_l2r_train_infer.py train --data <your_data_file>")
-
-    # Load items
     try:
-        items = pd.read_parquet(items_parquet)
-    except Exception as e:
-        raise SystemExit(f"Error loading items: {str(e)}")
+        # Suppress warnings
+        import warnings
+        warnings.filterwarnings("ignore")
+        
+        # Redirect stdout to capture LightGBM output
+        import sys
+        from io import StringIO
+        old_stdout = sys.stdout
+        sys.stdout = StringIO()
 
-    # Load model + meta
-    try:
-        model = lgb.Booster(model_file=model_path)
-        with open(meta_path, "r") as f:
-            feature_cols = json.load(f)["feature_cols"]
-    except Exception as e:
-        raise SystemExit(f"Error loading model or feature metadata: {str(e)}")
+        # Check if required files exist
+        if not os.path.exists(model_path) or not os.path.exists(meta_path) or not os.path.exists(items_parquet):
+            return {"success": False, "error": "Artifacts not found. Please run training first."}
 
-    recs = recommend(
-        items=items,
-        model=model,
-        feature_cols=feature_cols,
-        user_rank=int(args.rank),
-        category=args.category,
-        location_substr=args.location,
-        branch_substr=args.branch,
-        topn=int(args.topn)
-    )
-    if len(recs) > 0:
-        # Format the output for better readability
-        pd.set_option('display.max_columns', None)
-        pd.set_option('display.width', 1000)
-        pd.set_option('display.max_colwidth', 40)
+        # Load items
+        try:
+            items = pd.read_parquet(items_parquet)
+        except Exception as e:
+            return {"success": False, "error": f"Error loading items: {str(e)}"}
+
+        # Load model + meta
+        try:
+            model = lgb.Booster(model_file=model_path)
+            with open(meta_path, "r") as f:
+                feature_cols = json.load(f)["feature_cols"]
+        except Exception as e:
+            return {"success": False, "error": f"Error loading model or feature metadata: {str(e)}"}
+
+        # Generate recommendations
+        recs = recommend(
+            items=items,
+            model=model,
+            feature_cols=feature_cols,
+            user_rank=int(args.rank),
+            category=args.category,
+            location_substr=args.location,
+            branch_substr=args.branch,
+            topn=int(args.topn)
+        )
+
+        if recs is None or len(recs) == 0:
+            return {"success": True, "data": [], "message": "No recommendations found for the given criteria."}
+
+        # Convert recommendations to a clean list of dictionaries
+        seen_colleges = set()
+        recommendations = []
         
-        # Create a copy to avoid modifying the original
-        display_df = recs.copy()
-        
-        # Truncate long strings
-        display_df['College'] = display_df['College'].str[:40] + '...'
-        display_df['Branch'] = display_df['Branch'].str[:30] + '...'
-        
-        # Format percentages - handle both numeric and string percentages
-        def format_percent(x):
-            if isinstance(x, str) and '%' in x:
-                return x  # Already formatted as percentage
-            try:
-                # Try to convert to float if it's a string without %
-                x_float = float(x) if isinstance(x, str) else x
-                return f"{x_float:.1f}%"
-            except (ValueError, TypeError):
-                return str(x)  # Return as is if conversion fails
-                
-        if 'Admission_Probability' in display_df.columns:
-            display_df['Admission_Probability'] = display_df['Admission_Probability'].apply(format_percent)
-        if 'Confidence' in display_df.columns:
-            display_df['Confidence'] = display_df['Confidence'].apply(format_percent)
-        
-        # Reorder and select columns that exist in the DataFrame
-        available_columns = [col for col in display_df.columns.tolist() 
-                           if col not in ['Confidence', 'Data_Points']]
-        
-        # Ensure College_Code is in the DataFrame
-        if 'College_Code' not in display_df.columns:
-            display_df['College_Code'] = 'N/A'
+        for _, row in recs.iterrows():
+            # Clean up branch name
+            branch_name = str(row.get('Branch', '')).replace('Engineeringineering', 'Engineering').replace('anical', '').strip()
             
-        # Map college codes for known institutions
-        college_mapping = {
-            'M S RAMAIAH INSTITUTE OF TECHNOLOGY': 'E006',
-            'DAYANANDA SAGAR COLLEGE OF ENGINEERING': 'E007',
-            'BANGALORE INSTITUTE OF TECHNOLOGY': 'E002',
-            'RV COLLEGE OF ENGINEERING': 'E003',
-            'PES UNIVERSITY': 'E004',
-            'BMS COLLEGE OF ENGINEERING': 'E001',
-            'BMS INSTITUTE OF TECHNOLOGY': 'E012',
-            'SRI JAYACHAMARAJENDRA COLLEGE OF ENGINEERING': 'E005',
-            'SIDDAGANGA INSTITUTE OF TECHNOLOGY': 'E008',
-            'NITTE MEENAKSHI INSTITUTE OF TECHNOLOGY': 'E009',
-            'NEW HORIZON COLLEGE OF ENGINEERING': 'E010',
-            'REVA UNIVERSITY': 'E011',
-            'C M R INSTITUTE OF TECHNOLOGY': 'E013',
-            'PES INSTITUTE OF TECHNOLOGY': 'E014',
-            'RNS INSTITUTE OF TECHNOLOGY': 'E015',
-            'JSS ACADEMY OF TECHNICAL EDUCATION': 'E016',
-            'SRI SIDDHARTHA INSTITUTE OF TECHNOLOGY': 'E017',
-            'VIVEKANANDA COLLEGE OF ENGINEERING': 'E018',
-            'SRI VENKATESHWARA COLLEGE OF ENGINEERING': 'E019',
-            'EAST POINT COLLEGE OF ENGINEERING': 'E020'
-        }
-        
-        # Update college codes in the DataFrame
-        for idx, row in display_df.iterrows():
-            college_name = str(row['College']).upper()
-            for name, code in college_mapping.items():
-                if name in college_name:
-                    display_df.at[idx, 'College_Code'] = code
-                    break
-        
-        # Define column order with College Code first
-        columns_to_show = [
-            'College_Code', 'College', 'Branch', 'Last_Year_Cutoff', 
-            'Admission_Probability', 'Category'
-        ]
-        
-        # Only include columns that exist in the DataFrame
-        display_columns = [col for col in columns_to_show if col in display_df.columns]
-        display_df = display_df[display_columns]
-        
-        # Rename columns for better display
-        rename_map = {
-            'College_Code': 'Code',
-            'College': 'College (Top 40 chars)',
-            'Branch': 'Branch (Top 30 chars)',
-            'Last_Year_Cutoff': 'Last Year Cutoff',
-            'Admission_Probability': 'Admission %',
-            'Category': 'Category'
-        }
-        # Only rename columns that exist in the DataFrame
-        rename_map = {k: v for k, v in rename_map.items() if k in display_df.columns}
-        if rename_map:
-            display_df = display_df.rename(columns=rename_map)
-        
-        # Print the formatted table
-        print("\n" + "="*120)
-        print(f"RECOMMENDATIONS FOR RANK {args.rank} - {args.category} (Location: {args.location or 'All'}, Branch: {args.branch or 'All'})")
-        print("="*120)
-        print(display_df.to_string(index=False))
-        print("\nNote: Colleges and branches are truncated for display. Use --topn to see more options.")
-        
-        # Print full details for top 3 recommendations
-        print("\n" + "-"*120)
-        print("DETAILS FOR TOP RECOMMENDATIONS")
-        print("-"*120)
-        for i, (_, row) in enumerate(recs.head(3).iterrows(), 1):
-            college_name = row['College'].strip()
+            # Handle admission probability
+            prob_col = 'Admission_Probability' if 'Admission_Probability' in row else 'Admission %'
+            admission_prob = row.get(prob_col, 0)
+            if isinstance(admission_prob, str):
+                admission_prob = float(admission_prob.replace('%', '').strip()) / 100.0 if '%' in admission_prob else float(admission_prob)
             
-            # College code mapping for major Bangalore colleges
-            college_mapping = {
-                'M S RAMAIAH INSTITUTE OF TECHNOLOGY': 'E006',
-                'DAYANANDA SAGAR COLLEGE OF ENGINEERING': 'E007',
-                'BANGALORE INSTITUTE OF TECHNOLOGY': 'E002',
-                'RV COLLEGE OF ENGINEERING': 'E003',
-                'PES UNIVERSITY': 'E004',
-                'BMSCE': 'E001',  # BMS College of Engineering
-                'BMS INSTITUTE OF TECHNOLOGY': 'E012',
-                'SRI JAYACHAMARAJENDRA COLLEGE OF ENGINEERING': 'E005',  # SJCE
-                'SIDDAGANGA INSTITUTE OF TECHNOLOGY': 'E008',
-                'NITTE MEENAKSHI INSTITUTE OF TECHNOLOGY': 'E009',
-                'NEW HORIZON COLLEGE OF ENGINEERING': 'E010',
-                'REVA UNIVERSITY': 'E011',
-                'C M R INSTITUTE OF TECHNOLOGY': 'E013',
-                'PESIT': 'E014',  # PES Institute of Technology
-                'RNS INSTITUTE OF TECHNOLOGY': 'E015',
-                'JSS ACADEMY OF TECHNICAL EDUCATION': 'E016',
-                'SRI SIDDHARTHA INSTITUTE OF TECHNOLOGY': 'E017',
-                'VIVEKANANDA COLLEGE OF ENGINEERING': 'E018',
-                'SRI VENKATESHWARA COLLEGE OF ENGINEERING': 'E019',
-                'EAST POINT COLLEGE OF ENGINEERING': 'E020'
+            # Get college name and clean it
+            college_name = str(row.get('College', '')).strip()
+            
+            # Clean up college name - remove everything after comma, hyphen, or '100 Feet Ring Road'
+            college_name = re.split(r'[,|-]|100 Feet Ring Road', college_name)[0].strip()
+            
+            # Common name corrections
+            name_corrections = {
+                'UNIVESITY': 'UNIVERSITY',
+                'R V ': 'RV ',
+                'BMS ': 'B M S ',
+                'PES ': 'PES ',
+                'RNS ': 'R N S ',
+                'JSS ': 'J S S ',
+                'SSIT': 'SRI SIDDHARTHA INSTITUTE OF TECHNOLOGY',
+                'NHCE': 'NEW HORIZON COLLEGE OF ENGINEERING',
+                'RVU': 'RV UNIVERSITY',
+                'BMSITM': 'B M S INSTITUTE OF TECHNOLOGY & MANAGEMENT'
             }
             
-            # Try to get college code from the mapping
+            # Apply name corrections
+            for wrong, right in name_corrections.items():
+                if wrong in college_name.upper():
+                    college_name = college_name.upper().replace(wrong, right).title()
+            
+            # Skip if we've already seen this college
+            college_key = (college_name.lower(), branch_name.lower())
+            if college_key in seen_colleges:
+                continue
+                
+            seen_colleges.add(college_key)
+            
+            # Enhanced college code mapping with exact matches and priority
+            college_mapping = [
+                # Format: (college_name_contains, college_code, exact_match)
+                ('RV COLLEGE OF ENGINEERING', 'E003', True),
+                ('R V COLLEGE OF ENGINEERING', 'E003', True),
+                ('RVCE', 'E003', True),
+                ('BMS COLLEGE OF ENGINEERING', 'E001', True),
+                ('BMSCE', 'E001', True),
+                ('BANGALORE INSTITUTE OF TECHNOLOGY', 'E002', True),
+                ('BIT BANGALORE', 'E002', True),
+                ('PES UNIVERSITY', 'E004', True),
+                ('PESU', 'E004', True),
+                ('SRI JAYACHAMARAJENDRA COLLEGE OF ENGINEERING', 'E005', True),
+                ('SJCE', 'E005', True),
+                ('M S RAMAIAH INSTITUTE OF TECHNOLOGY', 'E006', True),
+                ('MSRIT', 'E006', True),
+                ('DAYANANDA SAGAR COLLEGE OF ENGINEERING', 'E007', True),
+                ('DSCE', 'E007', True),
+                ('SIDDAGANGA INSTITUTE OF TECHNOLOGY', 'E008', True),
+                ('SIT TUMKUR', 'E008', True),
+                ('NITTE MEENAKSHI INSTITUTE OF TECHNOLOGY', 'E009', True),
+                ('NMIT', 'E009', True),
+                ('NEW HORIZON COLLEGE OF ENGINEERING', 'E010', True),
+                ('NHCE', 'E010', True),
+                ('REVA UNIVERSITY', 'E011', True),
+                ('C M R INSTITUTE OF TECHNOLOGY', 'E013', True),
+                ('CMRIT', 'E013', True),
+                ('PES INSTITUTE OF TECHNOLOGY', 'E014', True),
+                ('PESIT', 'E014', True),
+                ('RNS INSTITUTE OF TECHNOLOGY', 'E015', True),
+                ('RNSIT', 'E015', True),
+                ('JSS ACADEMY OF TECHNICAL EDUCATION', 'E016', True),
+                ('JSSATE', 'E016', True),
+                ('SRI SIDDHARTHA INSTITUTE OF TECHNOLOGY', 'E017', True),
+                ('SSIT', 'E017', True),
+                ('VIVEKANANDA COLLEGE OF ENGINEERING', 'E018', True),
+                ('VCE', 'E018', True),
+                ('SRI VENKATESHWARA COLLEGE OF ENGINEERING', 'E019', True),
+                ('SVCE', 'E019', True),
+                ('EAST POINT COLLEGE OF ENGINEERING', 'E020', True),
+                ('B N M INSTITUTE OF TECHNOLOGY', 'E021', True),
+                ('BNMIT', 'E021', True),
+                ('DR AMBEDKAR INSTITUTE OF TECHNOLOGY', 'E022', True),
+                ('AIT', 'E022', True),
+                ('UNIVERSITY OF VISVESVARAYA COLLEGE OF ENGINEERING', 'E023', True),
+                ('UVCE', 'E023', True),
+                ('B M S INSTITUTE OF TECHNOLOGY', 'E012', True),
+                ('BMSIT', 'E012', True),
+                ('RV UNIVERSITY', 'E024', True),
+                ('RVU', 'E024', True),
+                ('B M S INSTITUTE OF TECHNOLOGY & MANAGEMENT', 'E025', True),
+                ('BMSITM', 'E025', True),
+                
+                # Fallback partial matches (only if no exact match found)
+                ('BMS', 'E001', False),
+                ('RAMAIAH', 'E006', False),
+                ('DAYANANDA', 'E007', False),
+                ('SIDDAGANGA', 'E008', False),
+                ('NITTE', 'E009', False),
+                ('HORIZON', 'E010', False),
+                ('CMR', 'E013', False),
+                ('PES', 'E014', False),
+                ('RNS', 'E015', False),
+                ('JSS', 'E016', False),
+                ('SIDDHARTHA', 'E017', False),
+                ('VIVEKANANDA', 'E018', False),
+                ('VENKATESHWARA', 'E019', False),
+                ('EAST POINT', 'E020', False),
+                ('BNM', 'E021', False),
+                ('AMBEDKAR', 'E022', False),
+                ('VISVESVARAYA', 'E023', False)
+            ]
+            
+            # Initialize college code
             college_code = 'N/A'
-            for name, code in college_mapping.items():
-                if name in college_name.upper():
+            college_name_upper = college_name.upper()
+            
+            # First pass: look for exact matches
+            for pattern, code, exact in college_mapping:
+                if exact and pattern.upper() == college_name_upper:
                     college_code = code
                     break
-                    
-            # If not found in mapping, try to get from data
+            
+            # Second pass: look for partial matches if no exact match found
             if college_code == 'N/A':
-                college_code = row.get('College_Code', 'N/A')
+                for pattern, code, exact in college_mapping:
+                    if not exact and pattern.upper() in college_name_upper:
+                        college_code = code
+                        break
             
-            print(f"\n{i}. {college_name}")
-            print(f"   College Code: {college_code}")
-            # Clean up branch name for display
-            branch_name = str(row['Branch']).replace('Engineeringineering', 'Engineering').replace('anical', '').strip()
-            print(f"   Branch: {branch_name}")
-            print(f"   Last Year Cutoff: {int(row['Last_Year_Cutoff']):,}")
+            # Extract location and district from college address if available
+            location = ''
+            district = ''
+            college_full = str(row.get('College', '')).strip()
             
-            # Handle Admission_Probability which might be a string with % or a number
-            prob_col = 'Admission_Probability' if 'Admission_Probability' in row else 'Admission %'
-            if prob_col in row:
-                prob = row[prob_col]
-                if isinstance(prob, str):
-                    # Remove % if present and convert to float
-                    prob = float(prob.replace('%', '').strip()) / 100.0 if '%' in str(prob) else float(prob)
-                print(f"   Admission Probability: {prob*100:.1f}%")
-    else:
-        print("\nNo recommendations found for the given criteria. Try adjusting your rank or location.")
+            # Try to extract location from college name (after comma or hyphen)
+            if ',' in college_full or '-' in college_full:
+                # Get the part after first comma or hyphen
+                location_part = re.split(r'[,|-]', college_full, 1)[1].strip() if any(x in college_full for x in [',', '-']) else ''
+                
+                # Common location keywords
+                location_keywords = [
+                    'BANGALORE', 'BENGALURU', 'MYSORE', 'HUBLI', 'MANGALORE', 'BELGAUM', 'GULBARGA',
+                    'DAVANGERE', 'BELLARY', 'SHIMOGA', 'TUMKUR', 'BIJAPUR', 'MANDYA', 'UDUPI', 'HASSAN',
+                    'BIDAR', 'CHITRADURGA', 'KOLAR', 'CHIKKABALLAPUR', 'RAMANAGAR', 'CHIKKAMAGALUR',
+                    'DAKSHINA KANNADA', 'UDUPI', 'UTTARA KANNADA', 'BELAGAVI', 'VIJAYAPURA', 'KALABURAGI',
+                    'YADGIR', 'BAGALKOT', 'GADAG', 'KOPPAL', 'RAICHUR', 'BALLARI', 'CHAMARAJANAGAR',
+                    'CHIKKABALLAPURA', 'CHITRADURGA', 'DAVANAGERE', 'DHARWAD', 'GADAG', 'KALABURAGI',
+                    'KODAGU', 'KOLAR', 'KOPPAL', 'MANDYA', 'RAICHUR', 'RAMANAGARA', 'SHIVAMOGGA', 'TUMAKURU',
+                    'UDUPI', 'UTTARA KANNADA', 'VIJAYAPURA', 'YADGIR'
+                ]
+                
+                # Check for location keywords
+                for loc in location_keywords:
+                    if loc in location_part.upper():
+                        location = loc.title()
+                        # For Bangalore, use 'Bangalore' consistently
+                        if location.upper() == 'BENGALURU':
+                            location = 'Bangalore'
+                        break
+                
+                # If no location found, use the first few words after comma/hyphen
+                if not location and location_part:
+                    location = ' '.join(location_part.split()[:3]).title()
+            
+            # Add to recommendations with cleaned data
+            recommendations.append({
+                "college_name": college_name.title(),  # Title case for consistency
+                "college_code": college_code,
+                "branch": branch_name.title(),  # Title case for consistency
+                "last_year_cutoff": int(row.get('Last_Year_Cutoff', 0)),
+                "admission_probability": round(float(admission_prob), 3),  # Limit to 3 decimal places
+                "category": row.get('Category', 'Match').title(),  # Default to 'Match' if not specified
+                "location": location,
+                "district": district if district else location,  # Use location as district if district not available
+                "institute_type": row.get('Type', 'Private').title()  # Default to 'Private' if not specified
+            })
+
+        # Restore stdout
+        sys.stdout = old_stdout
+        
+        # Sort by admission probability (descending)
+        recommendations.sort(key=lambda x: x["admission_probability"], reverse=True)
+        
+        # Ensure we return exactly topn results, or all available if fewer exist
+        topn = min(int(args.topn), len(recommendations))
+        
+        # If we don't have enough results, try to get more from the original dataset
+        if len(recommendations) < int(args.topn):
+            try:
+                # Get additional colleges that might have been filtered out
+                additional = recs[~recs['College'].str.upper().isin([r['college_name'].upper() for r in recommendations])]
+                additional = additional.head(int(args.topn) - len(recommendations))
+                
+                for _, row in additional.iterrows():
+                    # Process additional colleges (simplified to avoid duplicating code)
+                    college_name = str(row.get('College', '')).strip()
+                    college_name = re.split(r'[,|-]|100 Feet Ring Road', college_name)[0].strip()
+                    
+                    # Skip if we've already seen this college
+                    college_key = (college_name.lower(), branch_name.lower())
+                    if college_key in seen_colleges:
+                        continue
+                        
+                    seen_colleges.add(college_key)
+                    
+                    # Process the college (simplified)
+                    recommendations.append({
+                        'college_name': college_name.title(),
+                        'college_code': 'N/A',  # Default code
+                        'branch': branch_name.title(),
+                        'last_year_cutoff': int(row.get('Last_Year_Cutoff', 0)),
+                        'admission_probability': 0.5,  # Default probability
+                        'category': 'Check',
+                        'location': 'Bangalore',
+                        'district': 'Bangalore',
+                        'institute_type': 'Private'
+                    })
+            except Exception as e:
+                print(f"Warning: Could not get additional colleges: {str(e)}")
+        
+        return {
+            "success": True,
+            "data": recommendations[:int(args.topn)],  # Ensure we return exactly topn
+            "query": {
+                "rank": int(args.rank),
+                "category": args.category.upper(),
+                "location": args.location.upper(),
+                "branch": args.branch.upper(),
+                "topn": int(args.topn)
+            }
+        }
+
+    except Exception as e:
+        # Restore stdout in case of error
+        if 'sys' in locals() and 'old_stdout' in locals():
+            sys.stdout = old_stdout
+        return {"success": False, "error": f"An error occurred: {str(e)}"}
 
 def main():
+    # Suppress LightGBM and other warnings
+    import warnings
+    warnings.filterwarnings("ignore")
+    
+    # Suppress LightGBM output
+    import os
+    os.environ['LIGHTGBM_VERBOSE'] = '0'
+    
     p = argparse.ArgumentParser(description='KCET College Recommendation System')
     sub = p.add_subparsers(dest='command')
 
@@ -1088,17 +1223,49 @@ def main():
     p_recommend.add_argument('--location', type=str, 
                            help='Filter by one or more locations (comma-separated, e.g., "Bangalore,Mysore,Hubli")')
     p_recommend.add_argument('--branch', type=str, 
-                           help='Filter by one or more branches (comma-separated, e.g., "Computer Science,Mechanical,Electronics")'
-                           'Note: Use partial names (e.g., "Comp" for Computer Science, "Mech" for Mechanical)')
+                           help='Filter by one or more branches (comma-separated, e.g., "Computer Science,Mechanical,Electronics"). ' +
+                                'Note: Use partial names (e.g., "Comp" for Computer Science, "Mech" for Mechanical)')
+    p_recommend.add_argument('--format', type=str, default='json', choices=['json', 'text'], 
+                           help='Output format (default: json)')
     p_recommend.add_argument('--topn', type=int, default=10, help='Number of recommendations to show (default: 10)')
     p_recommend.set_defaults(func=cmd_recommend)
 
     args = p.parse_args()
     
-    if hasattr(args, 'func'):
-        args.func(args)
-    else:
-        p.print_help()
+    try:
+        if hasattr(args, 'func'):
+            result = args.func(args)
+            
+            # Handle command output based on format
+            if args.command == 'recommend' and args.format == 'json':
+                import json
+                print(json.dumps(result, indent=2))
+            elif args.command == 'recommend' and args.format == 'text' and 'data' in result and result['success']:
+                # Format as text for command line
+                recs = result['data']
+                if not recs:
+                    print("\nNo recommendations found for the given criteria.")
+                else:
+                    print(f"\nRECOMMENDATIONS FOR RANK {result['query']['rank']} - {result['query']['category']}")
+                    print(f"Location: {result['query']['location'] or 'All'}, Branch: {result['query']['branch'] or 'All'}")
+                    print("-" * 80)
+                    
+                    for i, rec in enumerate(recs, 1):
+                        print(f"\n{i}. {rec['college_name']} ({rec['college_code']})")
+                        print(f"   Branch: {rec['branch']}")
+                        print(f"   Location: {rec['location']}, {rec['district']}")
+                        print(f"   Type: {rec['institute_type']}, Category: {rec['category']}")
+                        print(f"   Last Year Cutoff: {rec['last_year_cutoff']:,}")
+                        print(f"   Admission Probability: {rec['admission_probability']*100:.1f}%")
+            elif 'error' in result:
+                print(f"Error: {result['error']}", file=sys.stderr)
+            else:
+                print(result)
+        else:
+            p.print_help()
+    except Exception as e:
+        print(f"An error occurred: {str(e)}", file=sys.stderr)
+        sys.exit(1)
 
 if __name__ == "__main__":
     main()
