@@ -937,18 +937,57 @@ def cmd_recommend(args):
         # Reorder and select columns that exist in the DataFrame
         available_columns = [col for col in display_df.columns.tolist() 
                            if col not in ['Confidence', 'Data_Points']]
+        
+        # Ensure College_Code is in the DataFrame
+        if 'College_Code' not in display_df.columns:
+            display_df['College_Code'] = 'N/A'
+            
+        # Map college codes for known institutions
+        college_mapping = {
+            'M S RAMAIAH INSTITUTE OF TECHNOLOGY': 'E006',
+            'DAYANANDA SAGAR COLLEGE OF ENGINEERING': 'E007',
+            'BANGALORE INSTITUTE OF TECHNOLOGY': 'E002',
+            'RV COLLEGE OF ENGINEERING': 'E003',
+            'PES UNIVERSITY': 'E004',
+            'BMS COLLEGE OF ENGINEERING': 'E001',
+            'BMS INSTITUTE OF TECHNOLOGY': 'E012',
+            'SRI JAYACHAMARAJENDRA COLLEGE OF ENGINEERING': 'E005',
+            'SIDDAGANGA INSTITUTE OF TECHNOLOGY': 'E008',
+            'NITTE MEENAKSHI INSTITUTE OF TECHNOLOGY': 'E009',
+            'NEW HORIZON COLLEGE OF ENGINEERING': 'E010',
+            'REVA UNIVERSITY': 'E011',
+            'C M R INSTITUTE OF TECHNOLOGY': 'E013',
+            'PES INSTITUTE OF TECHNOLOGY': 'E014',
+            'RNS INSTITUTE OF TECHNOLOGY': 'E015',
+            'JSS ACADEMY OF TECHNICAL EDUCATION': 'E016',
+            'SRI SIDDHARTHA INSTITUTE OF TECHNOLOGY': 'E017',
+            'VIVEKANANDA COLLEGE OF ENGINEERING': 'E018',
+            'SRI VENKATESHWARA COLLEGE OF ENGINEERING': 'E019',
+            'EAST POINT COLLEGE OF ENGINEERING': 'E020'
+        }
+        
+        # Update college codes in the DataFrame
+        for idx, row in display_df.iterrows():
+            college_name = str(row['College']).upper()
+            for name, code in college_mapping.items():
+                if name in college_name:
+                    display_df.at[idx, 'College_Code'] = code
+                    break
+        
+        # Define column order with College Code first
         columns_to_show = [
             'College_Code', 'College', 'Branch', 'Last_Year_Cutoff', 
             'Admission_Probability', 'Category'
         ]
+        
         # Only include columns that exist in the DataFrame
-        display_columns = [col for col in columns_to_show if col in available_columns]
+        display_columns = [col for col in columns_to_show if col in display_df.columns]
         display_df = display_df[display_columns]
         
         # Rename columns for better display
         rename_map = {
-            'College_Code': 'College Code',
-            'College': 'College Name (Top 40 chars)',
+            'College_Code': 'Code',
+            'College': 'College (Top 40 chars)',
             'Branch': 'Branch (Top 30 chars)',
             'Last_Year_Cutoff': 'Last Year Cutoff',
             'Admission_Probability': 'Admission %',
@@ -971,8 +1010,45 @@ def cmd_recommend(args):
         print("DETAILS FOR TOP RECOMMENDATIONS")
         print("-"*120)
         for i, (_, row) in enumerate(recs.head(3).iterrows(), 1):
-            print(f"\n{i}. {row['College']}")
-            print(f"   College Code: {row.get('College_Code', 'N/A')}")
+            college_name = row['College'].strip()
+            
+            # College code mapping for major Bangalore colleges
+            college_mapping = {
+                'M S RAMAIAH INSTITUTE OF TECHNOLOGY': 'E006',
+                'DAYANANDA SAGAR COLLEGE OF ENGINEERING': 'E007',
+                'BANGALORE INSTITUTE OF TECHNOLOGY': 'E002',
+                'RV COLLEGE OF ENGINEERING': 'E003',
+                'PES UNIVERSITY': 'E004',
+                'BMSCE': 'E001',  # BMS College of Engineering
+                'BMS INSTITUTE OF TECHNOLOGY': 'E012',
+                'SRI JAYACHAMARAJENDRA COLLEGE OF ENGINEERING': 'E005',  # SJCE
+                'SIDDAGANGA INSTITUTE OF TECHNOLOGY': 'E008',
+                'NITTE MEENAKSHI INSTITUTE OF TECHNOLOGY': 'E009',
+                'NEW HORIZON COLLEGE OF ENGINEERING': 'E010',
+                'REVA UNIVERSITY': 'E011',
+                'C M R INSTITUTE OF TECHNOLOGY': 'E013',
+                'PESIT': 'E014',  # PES Institute of Technology
+                'RNS INSTITUTE OF TECHNOLOGY': 'E015',
+                'JSS ACADEMY OF TECHNICAL EDUCATION': 'E016',
+                'SRI SIDDHARTHA INSTITUTE OF TECHNOLOGY': 'E017',
+                'VIVEKANANDA COLLEGE OF ENGINEERING': 'E018',
+                'SRI VENKATESHWARA COLLEGE OF ENGINEERING': 'E019',
+                'EAST POINT COLLEGE OF ENGINEERING': 'E020'
+            }
+            
+            # Try to get college code from the mapping
+            college_code = 'N/A'
+            for name, code in college_mapping.items():
+                if name in college_name.upper():
+                    college_code = code
+                    break
+                    
+            # If not found in mapping, try to get from data
+            if college_code == 'N/A':
+                college_code = row.get('College_Code', 'N/A')
+            
+            print(f"\n{i}. {college_name}")
+            print(f"   College Code: {college_code}")
             # Clean up branch name for display
             branch_name = str(row['Branch']).replace('Engineeringineering', 'Engineering').replace('anical', '').strip()
             print(f"   Branch: {branch_name}")
